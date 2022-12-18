@@ -1,0 +1,174 @@
+= 3. Analyze - 25 minutes
+:imagesdir: ../assets/images
+
+== Goals of this lab
+
+As you have realized in the previous *assessment* exercise, you need to analyze the legacy applications in terms of identifying the actual lines of code for the modernization issues as well as estimating time and effort for the modernization project.
+
+The goal of this exercise is to analyze the _customers_ application by scanning its source code and properties using the `Analysis` capability in MTA. Then you'll review the analysis report and get started with the actual code modification.
+
+MTA _Analysis_ is used by organizations for:
+
+* Planning and work estimation
+* Identifying migration issues and providing solutions
+* Detailed reporting
+
+And has several capabilities such as:
+
+* Built-in rules and migration paths
+* Rule extensibility and customization
+* Ability to analyze source code or application archives
+
+Read more about it in the https://access.redhat.com/documentation/en-us/migration_toolkit_for_applications/6.0/html-single/introduction_to_the_migration_toolkit_for_applications/index#new-mta-features_getting-started-guide[MTA Features]
+
+== 3.1. Analyze Customers Application using MTA
+
+First, you need to _download_ or _git clone_ the `modern-app-dev` repository to your local system from your link:https://gitea.%SUBDOMAIN%/%USERID%/modern-app-dev[Gitea repository^]. If you've used GitHub before, the Gitea interface will be very familiar:
+
+image::gitea-repo.png[gitea-repo]
+
+[NOTE]
+====
+You can also log in to the Gitea repository with the following credentials.
+
+* Username - `%USERID%`
+* Password - `{openshift-password}`
+====
+
+Once you download or clone the project to your local file system, extract it and check that the `customers-tomcat.war` file exists in the *packages-mta* folder. This is the file you will upload to MTA to begin the analysis.
+
+Go back to the `Application inventory` page in MTA web console.
+
+When you click on the `Customers` application, `Analyze` button will be enabled. Then, click on *Analyze*.
+
+image::application-analysis.png[application-analysis]
+
+=== 3.1.1. Analysis mode
+
+Select `Upload local binary` in Analysis mode popup. Then, drag and drop the *customers-tomcat.war* file or Upload it from your local file system.
+
+image::add-applications.png[Add applications]
+
+Click on `Next`.
+
+[NOTE]
+====
+Please make sure to see the following success popup message on the upper right of your screen after the upload completes. It probably will take a few seconds to complete the upload.
+
+image::upload-success.png[upload-success]
+====
+
+=== 3.1.2. Set targets
+
+You will now be presented with options for transformation targets. Here we will select several targets based on the technologies we are moving to:
+
+Since this is going to be a linux container, it makes sense to do a sanity check to avoid things like Windows filesystem paths and other non-container- or non-Linux-friendly issues. We also going to investigate removing our reliance on a proprietary JDK distribution, so we going to select OpenJDK as a target.
+
+Click on `Containers`, `Linux`, and `OpenJDK` as the targets.
+
+image::configure-analysis-checked.png[Configure Analysis]
+
+Click on `Next`.
+
+Select `Application and internal dependencies only` for the scope of dependencies.
+
+image::packages.png[Select packages]
+
+Click on `Next`.
+
+=== 3.1.3. Advanced
+
+You will now be presented with options for custom rules.
+
+image::custom-rules.png[Custom rules]
+
+MTA Analysis uses a custom rule engine for the analysis. It comes with many rules out of the box to support the different migration paths, but it can be extended. Custom rules can be developed with a very simple XML syntax and used as part of the analysis. We've provided some custom rules which will detect the usage of a specific library that we know has been used at Globex in the past and make suggestions for changes to be performed to remove it.
+
+Click on `Add Rule` to upload a custom rule (`corporate-framework-config.windup.xml`) in the *customrules* directory that you have already downloaded in your file system.
+
+Drag and drop the file or upload it from your local file system.
+
+[NOTE]
+====
+If you use a MacOS to upload the `.windup.xml` file, you should drag and drop the file rather than choosing the file on the popup file explorer.
+====
+
+image::upload-custom-rule.png[upload-custom-rule]
+
+Click on `Add`. Make sure the custom rule is added. Click on `Next`.
+
+image::enable-custom-rule.png[enable-custom-rule]
+
+Next, you will be presented with options to fine tune the analysis. For now we will stick with the default options.
+
+image::fine-tune.png[Fine tuning]
+
+Click on `Next`.
+
+Lastly, we are presented with a summary of the configuration for our analysis.
+
+image::finish-project.png[Finish project]
+
+Click on `Run`.
+
+The analysis begins, and once it is finished you will be able to access the reports. Stay on this view until the analysis is finished.
+
+Once it finises, expand the customers application using the caret on the left. Then click on `Report`.
+
+[NOTE]
+====
+The analysis may take a few minutes as it must pull container images for Windup before executing the analysis.
+====
+
+image::active-analysis.png[Active analysis]
+
+== 3.2. Understanding the report
+
+The Dashboard gives an overview of the entire application migration effort. It summarizes:
+
+* The incidents and story points by category
+* The incidents and story points by level of effort of the suggested changes
+* The incidents by package
+
+[NOTE]
+Story points are an abstract metric commonly used in Agile software development to estimate the relative level of effort needed to implement a feature or change. Migration Toolkit for Application uses story points to express the level of effort needed to migrate particular application constructs, and the application as a whole. The level of effort will vary greatly depending on the size and complexity of the application(s) to migrate.
+
+Once the report is finished, click on the link to access the report. Click on `customers-tomcat.war` application.
+
+image::report-view.png[View report]
+
+The reports provide all kinds of information about the application, like the technologies it uses, dependencies, but most importantly issues that need to get fixed.
+
+image::report-dashboard.png[report dashboard]
+
+Click on the `Issues` tab.
+
+This view shows us the list of issues that could prevent an application to successfully run on the target runtime. We can see that the application has a few mandatory issues that need to be addressed.
+
+Click on `Hard coded IP address`.
+
+By choosing the issue we can see where it was detected and view a hint on how to solve it.  It looks like the config files are pointing to some static IPs. That's not good in a cloud / container environment!
+
+image::report-hint.png[report hint]
+
+Click on `File system issue`.
+
+It looks like a problem has been detected on some class coming from the config library. We are analyzing the binary, so the dependencies have been analyzed as well.
+
+image::report-hint-fs.png[report hint file system]
+
+Click on `Legacy configuration issue`.
+
+It looks like the custom rule got triggered and found some issues with the source code.  This rule detects the use of a custom configuration library and gives some hints about what needs to be done to fix it.
+
+image::report-hint-custom.png[report hint custom rule]
+
+Click on the `io.konveyor.demo.ordermanagement.config.PersistenceConfig` file.
+
+image::report-code.png[report code]
+
+You can now see exactly where the issue is located in the source code.
+
+== Summary
+
+You have now successfully analyzed the legacy application to learn what migration issues you have. You'll refactor the application to fix the issues in the next module. Then, you'll deploy the modernized application to Red Hat OpenShift. Let's go!
