@@ -3,6 +3,8 @@
 
 A common way of speaking about migrating or modernizing workloads to the cloud has been coined as the *6 Rs framework*. This framework can be broken down as follows.
 
+THIS is a test message 123 10:41 AM
+
 image::mod-strategies.png[Modernization Strategies]
 
 Red Hat helps our customers' application modernization journey with this approach:
